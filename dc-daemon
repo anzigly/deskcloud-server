@@ -3,7 +3,7 @@
 
 import SimpleXMLRPCServer, sys, os, threading
 import DcServer
-workpath = '/root/deskcloud/'
+workpath = '/root/deskcloud-server/'
 rpcport = 8772
 
 def server_thread():

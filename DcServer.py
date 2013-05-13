@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # dc-server.py
 
-import rsa, os, hashlib
+import rsa, os, hashlib, commands
 from Crypto.Cipher import AES
 
 keybits = 512
@@ -105,3 +105,12 @@ class DcServer:
             return [self.__encrypt2str(aesEncryptor.decrypt(x), userpubkey) for x in [encryptoAccess, encryptoSecret, encryptoTenant_id, encryptoUser_id]]
         except:
             return False
+
+    def getVncDisplsy(self, ins_id):
+       ins_id = 'instance' + ins_id[1:]
+       cmd = "virsh vncdisplay %s" % ins_id
+       ret, debugout = commands.getstatusoutput(cmd)
+       return ret, debugout
+
+    def test(self, n):
+        return n+1

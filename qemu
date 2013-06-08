@@ -1,0 +1,79 @@
+#!/usr/bin/python
+import os, sys, commands
+import redis
+
+import socket
+import fcntl
+import struct
+def get_ip():
+    f=os.popen("ifconfig -s|grep -v Iface|grep -v lo|awk '{print $1}'")
+    interface=f.readlines()
+    f.close()
+    ip_dic={}
+    ip_list=[]
+    for ifname in interface:
+        ifname=ifname.strip()
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            ipaddr=socket.inet_ntoa(fcntl.ioctl(
+                                    s.fileno(),
+                                    0x8915,  # SIOCGIFADDR
+                                    struct.pack('256s', ifname[:15])
+                                    )[20:24])
+            ip_dic[ifname]=ipaddr
+            ip_list.append(ipaddr)
+        except:
+            pass
+    return ip_list
+
+def get_display(instance_name):
+    type = ''
+    procs =  commands.getstatusoutput('ps -ef |grep %s' % instance_name)[1].split('\n')
+    kvm_proc = ''
+    for proc in procs:
+        if proc.find('qemu-kvm') != -1:
+            kvm_proc = proc
+            break
+    if kvm_proc.find('vnc') != -1:
+        type = 'vnc'
+    elif kvm_proc.find('spice') != -1:
+        type = 'spice'
+    else:
+        return None
+    kvm_proc_list = _del_blank(kvm_proc.split(' '))
+    procid = kvm_proc_list[1]
+    netstat = commands.getstatusoutput('netstat -natp|grep %s' % procid)[1]
+    port = _del_blank(netstat.split(' '))[3].split(':')[1]
+    host = get_ip()[0]
+    return {'type':type, 'host':host, 'port':port}
+
+def redis_update(instance_name, display_info):
+    try:
+        r_server = redis.Redis("localhost")
+        r_server.set(instance_name, display_info)
+        return True
+    except:
+		return False
+def redis_delete(instance_name):
+    try:
+        r_server = redis.Redis("localhost")
+        r_server.delete(instance_name)
+        return True
+    except:
+        return False
+
+instance_name = sys.argv[1]
+action = sys.argv[2]
+
+if action == 'started':
+    try:
+        display = get_display(instance_name)
+        redis_update(instance_name, display)
+    except:
+        exit(0)
+elif action == 'stopped':
+    try:
+        redis_delete(instance_name)
+    except:
+        exit(0)
+exit(0)

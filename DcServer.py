@@ -3,6 +3,8 @@
 
 import rsa, os, hashlib, commands
 from Crypto.Cipher import AES
+import redis
+import DcUtils
 
 keybits = 512
 publickeyfile= 'keys/id_rsa.pub'
@@ -105,12 +107,8 @@ class DcServer:
             return [self.__encrypt2str(aesEncryptor.decrypt(x), userpubkey) for x in [encryptoAccess, encryptoSecret, encryptoTenant_id, encryptoUser_id]]
         except:
             return False
-
-    def getVncDisplsy(self, ins_id):
-       ins_id = 'instance' + ins_id[1:]
-       cmd = "virsh vncdisplay %s" % ins_id
-       ret, debugout = commands.getstatusoutput(cmd)
-       return ret, debugout
+    def getDisplay(self, ins_id):
+        return DcUtils.getDisplayFromRedis(ins_id)
 
     def test(self, n):
         return n+1
